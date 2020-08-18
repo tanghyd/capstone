@@ -117,21 +117,32 @@ def create_event_df(
                 # create event_id from filename and sentence index
                 event_id = f"{filename.with_suffix('').name}_{sentence_idx}"
 
+                # set as constant for now
+                is_near_miss_event = 0
+
                 event_data.append([
                     event_id,
                     filename.name,
                     sentence_idx,
-                    sentence,
+                    sentence_doc.text,
                     len(all_found),
                     all_found,
-                    event_text
+                    event_text,
+                    is_near_miss_event
                 ])
 
-    eventdf = pd.DataFrame(
-            event_data,
-            columns=['event_id', 'filename', 'sentence_idx', 'sentence_text', 'n_trigger_words', 'trigger_words',
-                     'event_text']
-    )
+    dataframe_columns = [
+        'event_id',
+        'filename',
+        'sentence_idx',
+        'sentence_text',
+        'n_trigger_words',
+        'trigger_words',
+        'event_text',
+        'is_near_miss_event'
+    ]
+
+    eventdf = pd.DataFrame(event_data, dataframe_columns)
 
     print(f'found {eventdf.shape[0]} events from a total of {total_sentences} sentences')
 

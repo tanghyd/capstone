@@ -21,3 +21,5 @@ weak intercepts
 minor intercepts
 open at depth
 along strike
+exploration licence
+prospective
