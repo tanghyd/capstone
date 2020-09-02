@@ -90,17 +90,19 @@ def create_spacy_phraseMatcher(phrases, type_of_event):
     return phrase_matcher
 
 
-def get_event_chuck(all_sentences, sentence_idx, n_sentences_extact, nlp=None):
-    lower_idx = max(0, sentence_idx - n_sentences_extact)
-    upper_idx = min(len(all_sentences), sentence_idx + n_sentences_extact)
+def get_event_chuck(all_sentences, sentence_idx, n_sentences_extract, nlp=None):
+    lower_idx = max(0, sentence_idx - n_sentences_extract)
+    upper_idx = min(len(all_sentences), sentence_idx + n_sentences_extract)
     select_sentences = all_sentences[lower_idx: upper_idx]
     event_text = " ".join(select_sentences)
+    end_chunk_idx = upper_idx
+    
 
     if nlp is not None:
         event_text = clean(event_text)
         event_text = nlp(event_text)
 
-    return event_text
+    return event_text, end_chunk_idx
 
 
 def create_event_df(
@@ -108,7 +110,7 @@ def create_event_df(
         directory: Path,
         trigger_phrases,
         geology_ents,
-        n_sentences_extact=2,
+        n_sentences_extract=3,
 ):
     if trigger_phrases is None or len(trigger_phrases) == 0:
         raise ValueError("Error: No trigger words provided")
@@ -120,8 +122,11 @@ def create_event_df(
     near_miss_phraseMatcher = create_spacy_phraseMatcher(trigger_phrases, "NearMissEvent")
     all_event_data = []
     total_sentences = 0
+    count = 0 
 
     for filename in filenames:
+        count += 1
+        print("Current File Progress: {}".format(count))
 
         text = load_text_from_filename(filename)
 
@@ -130,8 +135,12 @@ def create_event_df(
             continue
 
         total_sentences += n_sentences
+        
+        sentence_idx = 0
 
-        for sentence_idx, sentence in enumerate(text):
+        while sentence_idx < len(text):
+            # Set sentence variable
+            sentence = text[sentence_idx]
 
             # Clean text
             sentence_doc = nlp(clean(sentence))
@@ -142,7 +151,10 @@ def create_event_df(
             all_found = get_found_trigger_words_and_phrases(sentence_doc, near_miss_phraseMatcher)
 
             if len(all_found) > 0:  # Sentence contains at least 1 trigger word or phrase
-                event_text = get_event_chuck(text, sentence_idx, n_sentences_extact, nlp)
+                event_text, upper_chunk_idx = get_event_chuck(text, sentence_idx, n_sentences_extract, nlp)
+                
+                # Extract all trigger words or phrases from the event chunk
+                event_triggers = get_found_trigger_words_and_phrases(event_text, near_miss_phraseMatcher)
 
                 # create event_id from filename and sentence index
                 event_id = f"{filename.with_suffix('').name}_{sentence_idx}"
@@ -157,6 +169,7 @@ def create_event_df(
                     sentence_doc.text,
                     len(all_found),
                     all_found,
+                    event_triggers,
                     event_text.text,
                 ]
 
@@ -168,6 +181,10 @@ def create_event_df(
                 event_data.append(label)
 
                 all_event_data.append(event_data)
+                sentence_idx = upper_chunk_idx
+                
+            sentence_idx += 1
+                 
 
     feature_columns = [
         'event_id',
@@ -175,7 +192,8 @@ def create_event_df(
         'sentence_idx',
         'sentence_text',
         'n_trigger_words',
-        'trigger_words',
+        'trigger_words_in_sentence',
+        'trigger_words_in_event',
         'event_text'
     ]
     label_columns = ['event_label']
