@@ -1,6 +1,7 @@
 spacy==2.3.2
 pandas==1.1.0
 dash=1.14.0
+dash-bootstrap-components=0.10.5
 
 typing~=3.7.4.3
 tqdm~=4.45.0
