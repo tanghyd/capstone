@@ -50,7 +50,7 @@ python pipeline/extract_events.py --group=<group number>
 
 #### 3. Label extracted events as Near-Miss or not
 ```
-pipeline/sample_event_labeller.ipynb
+pipeline/label_events.ipynb
 ```
 
 #### 4. Process event dataframe 

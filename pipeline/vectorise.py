@@ -96,3 +96,6 @@ def vectorize(group):
 
     output_filename = events_path / f'group_{group}_processed.csv'
     labelled_df.to_csv(output_filename, index=False)
+    
+if __name__ == '__main__':
+    vectorize()
