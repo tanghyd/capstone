@@ -41,7 +41,7 @@ def clean(text):
 def load_patterns(path: Path):
     patterns = []
 
-    for p in path.iterdir():
+    for p in path.glob('*.txt'):
         with open(p, encoding="utf8") as f:
             patterns += json.load(f)
 
@@ -51,7 +51,7 @@ def load_patterns(path: Path):
 def load_triggers(path: Path):
     triggers = []
 
-    for p in path.iterdir():
+    for p in path.glob('*.json'):
         with open(p, 'r') as f:
             for line in f:
                 if len(line) > 1:

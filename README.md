@@ -53,7 +53,12 @@ python pipeline/extract_events.py --group=<group number>
 pipeline/sample_event_labeller.ipynb
 ```
 
-#### 4. Train Classifier on labelled events
+#### 4. Process event dataframe 
+```
+python pipeline/vectorize.py --group=<group number>
+```
+
+#### 5. Train Classifier on labelled events
 ```
 pipeline/sample_event_classification.ipynb
 ```

@@ -245,3 +245,5 @@ data/wamex_xml/*
 data/subset/*
 data/geoview
 
+/data/subset_txt/
+/data/subset_txt_cleaned/
