@@ -1,4 +1,5 @@
 import dash_core_components as dcc
+import dash_bootstrap_components as dbc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import pandas as pd
@@ -23,9 +24,12 @@ from app import app
 #     [Input('app-2-dropdown', 'value')])
 # def display_value(value):  # define the function that will compute the output of the dropdown
 
-df = pd.read_csv(
-    'https://gist.githubusercontent.com/chriddyp/c78bf172206ce24f77d6363a2d754b59/raw/c353e8ef842413cae56ae3920b8fd78468aa4cb2/usa-agricultural-exports-2011.csv',
-    index_col=0)
+# this should also be loaded once, and then is subsetted when called back.
+# it is important to only read what is required to display -- reading all then subsetting will not reduce load time
+df = pd.read_csv('data/group_all_labelled.csv', usecols=['group','filename', 'Near Miss Event','event_text', 'reviewed'], nrows=50)
+df['label'] = df['Near Miss Event'].astype(int)
+df = df.loc[df.reviewed, ['group', 'filename', 'event_text', 'label']]  # only show reviewed events but drop column after subset
+
 
 def generate_table(dataframe, max_rows=10):
     return html.Table([
@@ -40,6 +44,7 @@ def generate_table(dataframe, max_rows=10):
     ])
 
 layout = html.Div(children=[
-    html.H4(children='US Agriculture Exports (2011)'),
-    generate_table(df)
+    html.H4(children='Extracted Labelled Events'),
+    #generate_table(df),
+    dbc.Table.from_dataframe(df, striped=True, bordered=True, hover=True)
 ])
