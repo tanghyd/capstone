@@ -248,5 +248,8 @@ data/geoview
 /data/subset_txt/
 /data/subset_txt_cleaned/
 
+
 data/dataframes/subset_data.csv
 /pipeline/catboost_info/
+
+exploration/daniel/.data/
