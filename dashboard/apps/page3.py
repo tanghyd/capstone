@@ -86,6 +86,8 @@ layout = dbc.Container(
             ],
             align="center",
         ),
+        html.Div("Note: Dashboard will error if Cluster ccount field left empty."),
+
     ],
     fluid=True,
 )
@@ -140,7 +142,6 @@ def filter_options(v):
         {"label": col, "value": col, "disabled": col == v}
         for col in iris.columns
     ]
-
 
 # functionality is the same for both dropdowns, so we reuse filter_options
 app.callback(Output("x-variable", "options"), [Input("y-variable", "value")])(
