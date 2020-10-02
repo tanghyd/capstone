@@ -28,8 +28,8 @@ geoview = gpd.read_file(zipfile)
 
 df = geoview.merge(reports_grouped, left_on='ANUMBER',right_on="a_number_int")
 
-plotlydf = df[["ANUMBER","geometry","Near Miss Event_int"]]
-plotlydf.to_file("data/geofile.json",driver="GeoJSON") # this part shouldn't need to happen every time we run the app
+#plotlydf = df[["ANUMBER","geometry","Near Miss Event_int"]]
+#plotlydf.to_file("data/geofile.json",driver="GeoJSON") # this part shouldn't need to happen every time we run the app
 
 with open("data/geofile.json") as geofile:
     j_file = json.load(geofile)
