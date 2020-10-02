@@ -252,4 +252,5 @@ data/geoview
 data/dataframes/subset_data.csv
 /pipeline/catboost_info/
 
+data/backup
 exploration/daniel/.data/
