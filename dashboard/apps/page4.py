@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
+import dash_table
 
 import plotly.express as px
 
@@ -11,22 +12,33 @@ import json
 # import our main dash app variable from the app.py file
 from app import app
 
+styles = {
+    'pre': {
+        'border': 'thin lightgrey solid',
+        'overflowX': 'scroll'
+    }
+}
+
 # this should also be loaded once, and then is subsetted when called back.
 # it is important to only read what is required to display -- reading all then subsetting will not reduce load time
-df = pd.read_csv('data/group_all_labelled.csv')
-df = df.loc[df.reviewed]
+events = pd.read_csv('data/group_all_labelled.csv')
+events = events.loc[events.reviewed]
 
 mapdict = {True: 1, False: 0}
-df["Near Miss Event_int"] = df["Near Miss Event"].map(mapdict)
+events["Near Miss Event_int"] = events["Near Miss Event"].map(mapdict)
+events["a_number_text"] = events["filename"].str.split("_").str[0]
+events["a_number_int"] = events["a_number_text"].str.replace("a","").astype(int)
 
-reports_grouped = pd.DataFrame(df.groupby("filename").agg({'Near Miss Event_int': 'sum'}).reset_index())
-reports_grouped["a_number_text"] = reports_grouped["filename"].str.split("_").str[0]
-reports_grouped["a_number_int"] = reports_grouped["a_number_text"].str.replace("a","").astype(int)
+reports_grouped = pd.DataFrame(events.groupby(["a_number_int","filename"]).agg({'Near Miss Event_int': 'sum'}).reset_index())
 
 zipfile = "zip://data/geoview/Exploration_Reports_GDA2020_shp.zip"
 geoview = gpd.read_file(zipfile)
 
 df = geoview.merge(reports_grouped, left_on='ANUMBER',right_on="a_number_int")
+
+events_timeline = events.loc[events["Near Miss Event"]]
+events_timeline = geoview.merge(events_timeline, left_on='ANUMBER',right_on="a_number_int")
+events_timeline = events_timeline[["REPORT_YEA","TITLE","ANUMBER","MINERAL","event_text"]]
 
 #plotlydf = df[["ANUMBER","geometry","Near Miss Event_int"]]
 #plotlydf.to_file("data/geofile.json",driver="GeoJSON") # this part shouldn't need to happen every time we run the app
@@ -43,18 +55,20 @@ layout = html.Div([
         id='page-4-dropdown',
         options=options,
     ),
-    html.Div(id='page-4-display-value'),
-    dcc.Graph(id="graph", style={"width": "75%", "display": "inline-block"}),  # we will output the result from our dropdown here
+    dcc.Graph(id="graph", style={"width": "75%", "display": "inline-block"}),  
     #dcc.Link('Go to App 2', href='/apps/app2')  # html link to /apps/app2
+ html.Div([
+            dcc.Markdown("""
+                **Selection Data**
+
+                Choose the lasso or rectangle tool in the map's menu
+                bar and then select points in the map.
+            """),
+            html.Div(id='selected-data', style=styles['pre']),
+            dash_table.DataTable(id='selected-table',columns=[{"name": i, "id": i} for i in events_timeline.columns]),
+        ], className='three columns'),
     ]
 )
-
-# handle the user interactivity for our dropdown
-@app.callback(
-    Output('page-4-display-value', 'children'),
-    [Input('page-4-dropdown', 'value')])
-def display_value(value):  # define the function that will compute the output of the dropdown
-    return f'You have selected "{value}"'
 
 @app.callback(
     Output("graph","figure"),
@@ -71,3 +85,18 @@ def make_map(value):
                            opacity=0.5,
                            labels={'Near Miss Event_int':'# of near miss events'}
                           )
+
+@app.callback(
+    Output('selected-table', 'data'),
+    [Input('graph', 'selectedData')])
+def display_selected_data(selectedData):
+    if selectedData is not None:
+        selectedANumbers = []
+        for i in range(len(selectedData["points"])):
+            selectedANumbers.append(selectedData["points"][i]["location"])
+        selectedANumbers = pd.DataFrame({"a_number_int":selectedANumbers})
+        metadf = events_timeline.loc[:, events_timeline.columns != "geometry"] # remove the geometry info to get only the metadata
+        return metadf.merge(selectedANumbers,left_on="ANUMBER",right_on="a_number_int").to_dict("records")
+    else:
+        return None
+# want to return all the events in the selected region by timeline.
