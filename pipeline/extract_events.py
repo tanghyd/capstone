@@ -209,7 +209,6 @@ def get_events(patterns_path,
                     'positive':                    sentiment_scores[4],
                     'compound':                    sentiment_scores[5],
                     **extracted_geology_ents,
-                    'event_label':                 0,
                     'trigger_list_version':        trigger_version
                 })
 
