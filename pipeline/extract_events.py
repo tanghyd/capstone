@@ -4,6 +4,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Set, List
 
+## Sentiement Analyser Imports
+from textblob import TextBlob
+import nltk
+nltk.download('vader_lexicon')
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
 import click
 import pandas as pd
 import spacy
@@ -79,6 +85,17 @@ def extract_triggers(doc, matcher) -> Set:
 
     return found
 
+### Function that produces sentiment scores for text chunck
+def get_sentiment_scores(text):
+    score = sid.polarity_scores(text)
+    polarity = TextBlob(text).sentiment.polarity
+    subjectivity = TextBlob(text).sentiment.subjectivity
+    negative = score['neg']
+    neutral = score['neu']
+    positive = score['pos']
+    compound = score['compound']
+    return polarity, subjectivity,negative, neutral, positive, compound
+
 
 def get_extracted_geology_ents(event_text) -> Dict:
     extracted_ents_dict = defaultdict(set)
@@ -101,6 +118,9 @@ def get_events(patterns_path,
                reports_path,
                n_sentences_extract=2):
     nlp = spacy.load("en_core_web_lg")
+    
+    ##Intialise sentiment analyser
+    sid = SentimentIntensityAnalyzer()
 
     patterns = load_patterns(patterns_path)
 
@@ -142,6 +162,10 @@ def get_events(patterns_path,
                 upper_chunk_idx = min(n_sentences, sentence_idx + n_sentences_extract)
 
                 event_doc = nlp(clean(" ".join(text[lower_chunk_idx: upper_chunk_idx])))
+                
+                event_text = clean(" ".join(text[lower_chunk_idx: upper_chunk_idx]))
+                
+                sentiment_scores = get_sentiment_scores(event_text)
 
                 event_triggers = extract_triggers(event_doc, phrase_matcher)
 
@@ -157,6 +181,12 @@ def get_events(patterns_path,
                     'n_trigger_words_in_event':    len(event_triggers),
                     'trigger_words_in_event':      ', '.join(event_triggers),
                     'event_text':                  event_doc.text,
+                    'polarity':                    sentiment_scores[0],
+                    'subjectivity':                sentiment_scores[1],
+                    'negative':                    sentiment_scores[2],
+                    'neutral':                     sentiment_scores[3],
+                    'positive':                    sentiment_scores[4],
+                    'compound':                    sentiment_scores[5],
                     **extracted_geology_ents,
                     'event_label':                 0
                 })
