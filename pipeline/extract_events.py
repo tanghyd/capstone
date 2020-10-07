@@ -65,6 +65,20 @@ def load_triggers(path: Path):
 
     return triggers
 
+def load_new_triggers_from_labelling(old_triggers):
+    new_phrases = []
+    for group in (0,1,2,3,4,6):
+        events = pd.read_csv('../events/group_{}_labelled.csv'.format(group))
+        events = events.loc[events['Key trigger phrase'].notna(), ]
+        events_triggers = set(events['Key trigger phrase'].tolist())
+        new_phrases += events_triggers
+        new_phrases = list(set(new_phrases))
+    for phrase in new_phrases:
+        old_triggers.append(phrase.split())
+        
+    new_triggers = old_triggers
+    return new_triggers
+
 
 def load_report_filenames(path: Path) -> List:
     return list(path.glob('*.json'))
@@ -86,8 +100,8 @@ def extract_triggers(doc, matcher) -> Set:
     return found
 
 ### Function that produces sentiment scores for text chunck
-def get_sentiment_scores(text):
-    score = sid.polarity_scores(text)
+def get_sentiment_scores(text,sentiment_analyser):
+    score = sentiment_analyser.polarity_scores(text)
     polarity = TextBlob(text).sentiment.polarity
     subjectivity = TextBlob(text).sentiment.subjectivity
     negative = score['neg']
@@ -116,7 +130,8 @@ def get_extracted_geology_ents(event_text) -> Dict:
 def get_events(patterns_path,
                triggers_path,
                reports_path,
-               n_sentences_extract=2):
+               n_sentences_extract=2,
+               load_new_triggers = True):
     nlp = spacy.load("en_core_web_lg")
     
     ##Intialise sentiment analyser
@@ -130,6 +145,12 @@ def get_events(patterns_path,
     nlp.add_pipe(ruler)
 
     triggers = load_triggers(triggers_path)
+    
+    if load_new_triggers == True:
+        triggers = load_new_triggers_from_labelling(triggers)
+        trigger_version = "new"
+    else:
+        trigger_version = "old"
 
     # Create phrase matcher
     patterns = [nlp(' '.join(phrase)) for phrase in triggers]
@@ -165,7 +186,7 @@ def get_events(patterns_path,
                 
                 event_text = clean(" ".join(text[lower_chunk_idx: upper_chunk_idx]))
                 
-                sentiment_scores = get_sentiment_scores(event_text)
+                sentiment_scores = get_sentiment_scores(event_text,sid)
 
                 event_triggers = extract_triggers(event_doc, phrase_matcher)
 
@@ -188,7 +209,8 @@ def get_events(patterns_path,
                     'positive':                    sentiment_scores[4],
                     'compound':                    sentiment_scores[5],
                     **extracted_geology_ents,
-                    'event_label':                 0
+                    'event_label':                 0,
+                    'trigger_list_version':        trigger_version
                 })
 
                 sentence_idx = upper_chunk_idx
@@ -206,7 +228,8 @@ def extract_events(group):
     event_df = get_events(patterns_path=patterns_path,
                           triggers_path=triggers_path,
                           reports_path=subset_reports_path,
-                          n_sentences_extract=2)
+                          n_sentences_extract=2,
+                          load_new_triggers = True)
 
     event_path = events_path / f'group_{group}_events.csv'
     event_df.to_csv(event_path, index=False)
