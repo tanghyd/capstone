@@ -37,10 +37,10 @@ navbar = dbc.Navbar(
                                 #className="ml-auto flex-nowrap mt-3 mt-md-0"
                                 ),
                             align="center"),
-                        dbc.Col(
-                            html.Div(id='navbar-display-report', style={'width': '600px'}),
-                            width="auto",
-                            align="center"),
+                        # dbc.Col(
+                        #     html.Div(id='navbar-display-report', style={'width': '600px'}),
+                        #     width="auto",
+                        #     align="center"),
                     ],
                     no_gutters=True
                 ),
@@ -54,13 +54,13 @@ navbar = dbc.Navbar(
 )
 
 # output selected report to navbar
-@app.callback(
-    Output('navbar-display-report', 'children'),
-    [Input('navbar-dropdown', 'value')])
-def display_value(value):  # define the function that will compute the output of the dropdown
-    if value == None:
-        return 'No Report selected'
-    return f'Displaying information from Report #{value}: {filename_series.loc[value]}'
+# @app.callback(
+#     Output('navbar-display-report', 'children'),
+#     [Input('navbar-dropdown', 'value')])
+# def display_value(value):  # define the function that will compute the output of the dropdown
+#     if value == None:
+#         return 'No Report selected'
+#     return f'Displaying information from Report #{value}: {filename_series.loc[value]}'
 
 # add callback for search value in list for dropdown
 @app.callback(
