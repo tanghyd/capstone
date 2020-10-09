@@ -65,15 +65,15 @@ class Timer:
 import os
 
 # count number of '..' between current dir and base path
-dir_walk_count = 0
-current_dir = os.getcwd()
-while current_dir != '/home/daniel/capstone':
-    current_dir = os.path.dirname(current_dir)
-    dir_walk_count += 1
-    print(current_dir)
+# dir_walk_count = 0
+# current_dir = os.getcwd()
+# while current_dir.rsplit('/')[-1] != 'capstone':  # won't work on windows
+#     current_dir = os.path.dirname(current_dir)
+#     dir_walk_count += 1
 
 # produce base_dir based on current dir
-up_n_levels = '/'.join([str('..') for _ in range(dir_walk_count)]) 
+#up_n_levels = '/'.join([str('..') for _ in range(dir_walk_count)]) 
+up_n_levels = '..'
 
 from pathlib import Path
 BASE_PATH = Path(up_n_levels)  # produce base_dir based on current dir)
