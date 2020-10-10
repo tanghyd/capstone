@@ -60,8 +60,9 @@ from dash.dependencies import Input, Output
 
 # import application files from directory
 from app import app  # from the app.py file import the app variable
-from apps import page1, page2, page3 # from the apps folder import app1.py and app2.py
+from apps import page1, page2, page3, page4 # from the apps folder import app1.py and app2.py
 from apps.sidebar import sidebar, CONTENT_STYLE
+from apps.navbar import navbar
 
 # url_bar_and_content_div = html.Div([
 #     dcc.Location(id='url', refresh=False),
@@ -69,31 +70,43 @@ from apps.sidebar import sidebar, CONTENT_STYLE
 #     style=CONTENT_STYLE)
 # ])
 
+
+#nav = Navbar(style=NAVBAR_STYLE)
+
 content = html.Div(id='page-content', style=CONTENT_STYLE)
 
-app.layout = html.Div([dcc.Location(id="url", refresh=False), sidebar, content])
+app.layout = html.Div(
+    [dcc.Location(id="url", refresh=False),
+    sidebar,
+    navbar,
+    content,
+    # Hidden div inside the app that stores the intermediate value
+    html.Div(id='intermediate-value', style={'display': 'none'})
+])
 
 # this calllback uses the current pathname to set the activate state of the
 # corresponding nav link to true, allowing users to tell which page they are on
 @app.callback(
-    [Output(f"page-{i}-link", "active") for i in range(1,4)],
+    [Output(f"page-{i}-link", "active") for i in range(1,5)],
     [Input("url", "pathname")])
 def toggle_active_links(pathname):
     if pathname == "/":
         # treat page 1 as the homepage / index
-        return True, False, False   
-    return [pathname == f"/page-{i}" for i in range(1,4)]
+        return True, False, False, False 
+    return [pathname == f"/page-{i}" for i in range(1,5)]
 
-#write callback function to handle input and output to dash web app
+#write callback function to take page pathname as input, and outputs the layout to page-content
 @app.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname in ["/", '/page-1']:
+    if pathname in ["/", '/page-1', "/home"]:
         return page1.layout  # display the layout for app1
     elif pathname == '/page-2': 
         return page2.layout
     elif pathname == '/page-3': 
         return page3.layout
+    elif pathname == '/page-4': 
+        return page4.layout
     else:
         return dbc.Jumbotron(
             [

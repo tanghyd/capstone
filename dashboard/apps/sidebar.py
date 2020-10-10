@@ -5,32 +5,41 @@ import dash_html_components as html
 SIDEBAR_STYLE = {
     'position': 'fixed',
     'top': 0,
-    'leftl': 0,
+    'left': 0,
     'bottom': 0,
     'width': '16rem',
     'padding': '2rem 1rem',
     'background-color': '#f8f9fa',
 }
 
-# the styles for the main conten tposition it to the right of the side bar and add some padding
+# the styles for the main content position it to the right of the side bar and add some padding
 CONTENT_STYLE = {
     'margin-left': '18rem',
     'margin-right': '2rem',
     'padding': '2rem 1rem',
 }
 
+NAVBAR_STYLE = {
+    'position': 'relative',
+    'left': 0,
+    'right': 12,
+    'margin-left': '16rem', # left margin starts at 16rem width of sidebar
+    'padding': '1rem 1rem',
+}
+
 sidebar = html.Div(
     [
-        html.H2("Sidebar", className="display-4"),  # sidebar header(?)
+        html.H2("WAMEX", className="display-4"),  # sidebar header(?)
         html.Hr(),
         html.P(
-            "A simple sidebar layout with navigation links", className="lead"
+            "Natural Language Processing Dashboard UWA MDS", className="lead"
         ),
         dbc.Nav(
             [
-                dbc.NavLink("Page 1", href="/page-1", id="page-1-link"),
-                dbc.NavLink("Page 2", href="/page-2", id="page-2-link"),
-                dbc.NavLink("Page 3", href="/page-3", id="page-3-link"),
+                dbc.NavLink("Reports", href="/page-1", id="page-1-link"),
+                dbc.NavLink("Events", href="/page-2", id="page-2-link"),
+                dbc.NavLink("Clusters", href="/page-3", id="page-3-link"),
+                dbc.NavLink("Events Map", href="/page-4", id="page-4-link"),
             ],
             vertical=True,  # ?
             pills=True,  # ?
