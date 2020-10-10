@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 import pandas as pd
 
-BASE_PATH = Path('..')
+BASE_PATH = Path('.')
 
 all_reports_path = BASE_PATH / 'data' / 'wamex_xml'
 subset_reports_path = BASE_PATH / 'data' / 'subset'
