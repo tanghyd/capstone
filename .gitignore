@@ -254,3 +254,5 @@ data/dataframes/subset_data.csv
 
 data/backup
 exploration/daniel/.data/
+
+.DS_Store/
