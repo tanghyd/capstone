@@ -59,10 +59,10 @@ import dash_html_components as html
 from dash.dependencies import Input, Output
 
 # import application files from directory
-from app import app  # from the app.py file import the app variable
-from apps import page1, page2, page3, page4 # from the apps folder import app1.py and app2.py
-from apps.sidebar import sidebar, CONTENT_STYLE
-from apps.navbar import navbar
+from dashboard.app import app  # from the app.py file import the app variable
+from dashboard.apps import page1, page2, page3, page4 # from the apps folder import app1.py and app2.py
+from dashboard.apps.sidebar import sidebar, CONTENT_STYLE
+from dashboard.apps.navbar import navbar
 
 # url_bar_and_content_div = html.Div([
 #     dcc.Location(id='url', refresh=False),
