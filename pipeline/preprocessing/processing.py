@@ -119,7 +119,7 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
             doc = u' '.join(doc)
             return nlp.make_doc(doc)
 
-        nlp.add_pipe(lemmatizer, name='lemmatizer')
+        nlp.add_pipe(lemmatizer, name='lemmatizer', before='tagger')
         if verbose:
             print('Added lemmatizer pipe')
 
@@ -130,7 +130,7 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
             doc = u' '.join(doc)
             return nlp.make_doc(doc)
 
-        nlp.add_pipe(remove_stopwords, name='stopwords')
+        nlp.add_pipe(remove_stopwords, name='stopwords', before='tagger')
         if verbose:
             print('Added stopword removal pipe')
 
@@ -141,7 +141,7 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
             doc = u' '.join(doc)
             return nlp.make_doc(doc)
 
-        nlp.add_pipe(remove_punctuation, name='punctuation')
+        nlp.add_pipe(remove_punctuation, name='punctuation', before='tagger')
         if verbose:
             print('Added punctuation removal pipe')
 
@@ -156,7 +156,7 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
         ruler = EntityRuler(nlp, overwrite_ents=True)
         ruler.add_patterns(patterns)
 
-        nlp.add_pipe(ruler, name='entityruler')
+        nlp.add_pipe(ruler, name='entityruler', after='ner')
         if verbose:
             print('Added entity ruler pipe')
 
@@ -172,7 +172,7 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
             ({'label': 'TRIGGER', 'pattern': trigger} for trigger in triggers)
         )
 
-        nlp.add_pipe(trigger_ruler, name='triggermatcher')
+        nlp.add_pipe(trigger_ruler, name='triggermatcher', after='ner')
         if verbose:
             print('Added trigger matcher pipe')
 

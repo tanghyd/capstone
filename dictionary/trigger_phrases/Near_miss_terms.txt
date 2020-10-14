@@ -167,7 +167,16 @@ worthwhile,
 yet to be followed up,
 yet to be tested,
 zone may extend,
-
+anomalous,
+anomalism,
+support,
+unexplained,
+cannot be discounted,
+can't discount,
+unexplored,
+under-evaluated,
+under-examined,
+not economic,
 
 
 
