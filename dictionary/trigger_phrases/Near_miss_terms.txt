@@ -4,6 +4,9 @@ weak minor intercepts,
 weak level mineralisation,
 minor level mineralisation,
 mineralisation,
+mineralization,
+mineralised,
+mineralized,
 low level mineralisation,
 weak level mineralization,
 minor level mineralization,
@@ -43,7 +46,7 @@ medium-grade,
 mediumgrade,
 potential,
 possible,
-prospective
+prospective,
 
 
 
