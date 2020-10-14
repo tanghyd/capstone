@@ -7,10 +7,11 @@ from datetime import datetime
 import geopandas as gpd
 import pandas as pd
 
+from pipeline.preprocessing import load_files
+
 default_headers = ['ANUMBER', 'TITLE', 'REPORT_YEA', 'AUTHOR_NAM', 'AUTHOR_COM', 'REPORT_TYP',
                    'DATE_FROM', 'DATE_TO', 'PROJECT', 'OPERATOR', 'ABSTRACT', 'KEYWORDS',
                    'TARGET_COM', 'DATE_RELEA', 'geometry']
-
 
 # ETL from reports zip file to dimension table for geoview
 def get_geoview_data(data_file='Exploration_Reports_GDA2020_shp.zip',
@@ -33,7 +34,7 @@ def get_geoview_data(data_file='Exploration_Reports_GDA2020_shp.zip',
     geoview = geoview.loc[:, headers]
 
     if not all:  # subset for capstone group reports only
-        capstone_files = get_report_anumbers(data_folder=data_folder)  # run other utils function for files
+        capstone_files = get_report_data(data_folder=data_folder)  # run other utils function for files
         geoview = geoview.loc[geoview.ANUMBER.isin(
                 capstone_files.anumber)]  # at this stage we have not lower-cased geoview's ANUMBER column
 
@@ -67,13 +68,26 @@ def get_geoview_data(data_file='Exploration_Reports_GDA2020_shp.zip',
 
 
 # create dataframe for filename and a-number data
-def get_report_anumbers(data_folder='data'):
-    # filenames = [file.split('/',4)[-1] for file in glob.glob(f'{data_folder}/wamex_xml/*.json')]  # does not work on windows due to file path
+def get_report_data(data_folder='data', count_sentences=False, return_files=False):
+    # get filenames in wamex data folder directory and save to filenames - does not load .json files
     wamex_folder_path = wamex_folder_path = os.path.join(*(str(data_folder).split('/')), 'wamex_xml')
     filenames = [file.split('/', 4)[-1] for file in os.listdir(wamex_folder_path) if file.split('.', 1)[-1] == 'json']
-    anumbers = [int(file.split("_", 1)[0].replace("a", "")) for file in filenames]
-    files = pd.DataFrame.from_dict({'filename': filenames, 'anumber': anumbers})
-    return files
+    anumbers = [int(file.split("_", 1)[0].replace("a", "")) for file in filenames] # get anumbers from file string
+
+    data = {'filename': filenames, 'anumber': anumbers}
+   
+    if return_files:  
+        # then we need to load files
+        files = load_files(filenames, data_path=wamex_folder_path)
+
+        # get number of sentences in json
+        if count_sentences:
+            sentence_count = [len(sentences) for sentences in files.values()]
+            data = {**data, 'sentence_count': sentence_count}
+
+        return pd.DataFrame.from_dict(data), files
+
+    return pd.DataFrame.from_dict(data)
 
 
 

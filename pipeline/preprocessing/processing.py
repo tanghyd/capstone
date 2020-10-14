@@ -237,16 +237,19 @@ def get_extracted_geology_ents(event_text) -> Dict:
     return result
 
 
-def load_files(filenames, data_path: Path, output: str = 'dict'):
+def load_files(filenames, data_path, output: str = 'dict'):
+    if type(data_path) == str:
+        data_path = Path(data_path)
     if output == 'dict':
-        return {filename: load_json(data_path / filename) for filename in filenames}
+        return {filename: load_json(data_path / filename) for filename in tqdm(filenames, desc='Loading files as dict')}
     elif output == 'list':
-        return [load_json(data_path / filename) for filename in filenames]
+        return [load_json(data_path / filename) for filename in filenames in tqdm(filenames, desc='Loading files as list')]
 
 
 def match_triggers(filenames, triggers_from_labelling=True, nlp=None, save_json=False,
                    json_file='sample_triggers.json', return_json=False, triggers_path=triggers_path,
-                   data_path: Path = reports_path, save_path: Path = BASE_PATH / 'data'):  # not ideal path naming here
+                   data_path: Path = reports_path, save_path: Path = BASE_PATH / 'data',
+                   n_process=1,):  # not ideal path naming here
     if nlp == None:
         # Load standard spacy model, output tokens (not text strings) 
         nlp = load_spacy_model(output_type='doc', entity_ruler=False, tokenizer_only=True, verbose=False)
@@ -257,16 +260,20 @@ def match_triggers(filenames, triggers_from_labelling=True, nlp=None, save_json=
     # create phrase matcher that matches on our trigger words 
     trigger_matcher = create_phrase_matcher(triggers, nlp=nlp)
 
-    # load report files to extract events on triggers from
-    files = load_files(filenames, data_path=data_path, output='dict')
+    # if a dictionary is loaded where keys are filenames and values are pre-loaded files, we dont load from disk
+    if type(filenames) == dict:
+        files = filenames
+    else:
+        # load report files from disk to extract events on triggers
+        files = load_files(filenames, data_path=data_path, output='dict')
 
     # get sentence with trigger word match for each file in files
     # note: sentence idx is saved as a string for compatibility between json / df
     file_triggers = {
         file: dict(filter(lambda match: len(match[1]) > 0,  # remove any sentences that do not have matches
-                          ((str(idx), list(get_matches(doc, trigger_matcher))) for idx, doc in
-                           enumerate(nlp.tokenizer.pipe(sentences)))))
-        for file, sentences in tqdm(files.items(), desc='Matching sentences in files with trigger phrases')
+                          ((str(idx), list(get_matches(doc, trigger_matcher))) 
+                          for idx, doc in enumerate(nlp.tokenizer.pipe(sentences)))))
+        for file, sentences in tqdm(files.items(), desc='Matching loaded texts with trigger phrases')
     }
 
     if save_json:  # save json object if specified
@@ -282,9 +289,14 @@ def match_triggers(filenames, triggers_from_labelling=True, nlp=None, save_json=
 
 
 def triggers_json_to_df(file_triggers):
-    return pd.DataFrame([{"filename": file, "idx": idx, "triggers": ', '.join(triggers)}
+    return pd.DataFrame([{"filename": file, "idx": int(idx), "triggers": ', '.join(triggers)}
                          for file, matches in file_triggers.items() for idx, triggers in matches.items()])
 
+def to_list(x, sep=',', default='unknown'):
+    if isinstance(x, str):
+        return [item.strip() for item in x.split(sep)]
+    else:
+        return [default]
 
 def get_events(entities_path, triggers_path, reports_path, n_sentences_extract=2, triggers_from_labelling=True,
                nlp=None):
