@@ -94,8 +94,10 @@ def load_json(filename):
         return json.load(f)
 
 
-def load_spacy_model(base_model="en_core_web_lg", output_type='doc', entity_ruler=True, entities_path=entities_path,
-                     lemmatizer=True, stopword_removal=True, tokenizer_only=False, verbose=True):
+def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_only=False,
+                    entity_ruler=True, entities_path=entities_path, 
+                    trigger_matcher=False, triggers_from_labelling=False, triggers_path=triggers_path,
+                    lemmatizer=True, stopword_removal=False, punctuation_removal=True, verbose=True):
     '''Utility function to load standardised NLP English pipeline from spaCy
     
     output_type : str --- Specifies the output type for the pipeline. Default: 'doc'.
@@ -105,11 +107,43 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', entity_rule
     '''
 
     # output type check
-    assert output_type in (
-    'doc', 'sentence', 'text'), "output_type not valid. Select one of ('doc', 'token', 'sentence', 'text')."
+    assert output_type in ('doc', 'sentence', 'text'), "output_type not valid. Select one of ('doc', 'token', 'sentence', 'text')."
 
     # initialise language pipeline with base model
     nlp = spacy.load(base_model)
+
+    if lemmatizer:
+        def lemmatizer(doc):
+            # This takes in a doc of tokens from the NER and lemmatizes them. 
+            doc = [token.lemma_.lower().strip() for token in doc if token.lemma_ != '-PRON-']
+            doc = u' '.join(doc)
+            return nlp.make_doc(doc)
+
+        nlp.add_pipe(lemmatizer, name='lemmatizer')
+        if verbose:
+            print('Added lemmatizer pipe')
+
+    if stopword_removal:
+        def remove_stopwords(doc):
+            # This will remove stopwords and punctuation.
+            doc = [token.text.lower().strip() for token in doc if token.is_stop != True]
+            doc = u' '.join(doc)
+            return nlp.make_doc(doc)
+
+        nlp.add_pipe(remove_stopwords, name='stopwords')
+        if verbose:
+            print('Added stopword removal pipe')
+
+    if punctuation_removal:
+        def remove_punctuation(doc):
+            # Temp func to remove punctuation
+            doc = [token.text.lower().strip() for token in doc if token.is_punct != True]
+            doc = u' '.join(doc)
+            return nlp.make_doc(doc)
+
+        nlp.add_pipe(remove_punctuation, name='punctuation')
+        if verbose:
+            print('Added punctuation removal pipe')
 
     if entity_ruler and not tokenizer_only:
         # Instantiate a spaCy EntityRuler and load patterns for manual pattern matching
@@ -126,53 +160,21 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', entity_rule
         if verbose:
             print('Added entity ruler pipe')
 
-    # spaCy pipeline's final output type logic
-    if output_type == 'doc':
+    if trigger_matcher and not tokenizer_only:
+        # Create phrase matcher
+        from spacy.matcher import PhraseMatcher
+        # create phrase matcher that matches on our trigger words 
+        triggers = load_triggers(triggers_path, triggers_from_labelling=triggers_from_labelling)
+
+        trigger_ruler = EntityRuler(nlp, overwrite_ents=True)
+
+        trigger_ruler.add_patterns(
+            ({'label': 'TRIGGER', 'pattern': trigger} for trigger in triggers)
+        )
+
+        nlp.add_pipe(trigger_ruler, name='triggermatcher')
         if verbose:
-            print(f'Loading spaCy model with spaCy {output_type} output.')
-
-    elif output_type in ('text', 'sentence'):
-        # function to take doc object to text
-        def to_text(doc, lower_case=False):
-            if lower_case:  # Use token.text to return strings, which we'll need for Gensim.
-                return [token.text.lower() for token in doc]
-            else:
-                return [token.text for token in doc]
-
-        if lemmatizer:
-            def lemmatizer(doc):
-                # This takes in a doc of tokens from the NER and lemmatizes them. 
-                doc = [token.lemma_.lower().strip() for token in doc if token.lemma_ != '-PRON-']
-                doc = u' '.join(doc)
-                return nlp.make_doc(doc)
-
-            nlp.add_pipe(lemmatizer, name='lemmatizer')
-            if verbose:
-                print('Added lemmatizer pipe')
-
-        if stopword_removal:
-            def remove_stopwords(doc):
-                # This will remove stopwords and punctuation.
-                doc = [token.text.lower().strip() for token in doc if token.is_stop != True and token.is_punct != True]
-                doc = u' '.join(doc)
-                return nlp.make_doc(doc)
-
-            nlp.add_pipe(remove_stopwords, name='stopwords')
-            if verbose:
-                print('Added stopwords and punctuation pipe')
-
-        if output_type == 'text':
-            nlp.add_pipe(to_text, name='text_output', last=True)
-            if verbose:
-                print(f'Loading spaCy model with list of token {output_type} strings as output.')
-
-        elif output_type == 'sentence':
-            def to_sentence(doc, sep=' '):
-                return sep.join(to_text(doc))
-
-            nlp.add_pipe(to_sentence, name='sentence_output', last=True)
-            if verbose:
-                print('Loading spaCy model with string output.')
+            print('Added trigger matcher pipe')
 
     if tokenizer_only:
         pipes = ['tagger', 'parser', 'ner']
@@ -181,10 +183,45 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', entity_rule
         for pipe in pipes:
             nlp.remove_pipe(pipe)
 
+    # spaCy pipeline's final output type logic
+    if output_type == 'doc':
+        if verbose:
+            print(f'Loading spaCy model with spaCy {output_type} output.')
+
+    elif output_type in ('text', 'sentence'):
+        # # function to take doc object to text
+        # def to_text(doc, lower_case=False):
+        #     if lower_case:  # Use token.text to return strings, which we'll need for Gensim.
+        #         return [token.text.lower() for token in doc]
+        #     else:
+        #         return [token.text for token in doc]
+
+        if output_type == 'text':
+            nlp.add_pipe(to_text, name='text_output', last=True)
+            if verbose:
+                print(f'Loading spaCy model with list of token {output_type} strings as output.')
+
+        elif output_type == 'sentence':
+            # def to_sentence(doc, sep=' '):
+            #     return sep.join(to_text(doc))
+
+            nlp.add_pipe(to_sentence, name='sentence_output', last=True)
+            if verbose:
+                print('Loading spaCy model with string output.')
+
     return nlp
 
+# function to take doc object to text
+def to_text(doc, lower_case=False):
+    if lower_case:  # Use token.text to return strings, which we'll need for Gensim.
+        return [token.text.lower() for token in doc]
+    else:
+        return [token.text for token in doc]
 
-def create_phrase_matcher(phrases, nlp=None, label="Trigger"):
+def to_sentence(doc, sep=' '):
+                return sep.join(to_text(doc))
+                
+def create_phrase_matcher(phrases, nlp=None, label="TRIGGER"):
     if nlp == None:
         nlp = load_spacy_model(output_type='doc', tokenizer_only=True, verbose=False)
 
@@ -248,11 +285,9 @@ def load_files(filenames, data_path, output: str = 'dict'):
 
 def match_triggers(filenames, triggers_from_labelling=True, nlp=None, save_json=False,
                    json_file='sample_triggers.json', return_json=False, triggers_path=triggers_path,
-                   data_path: Path = reports_path, save_path: Path = BASE_PATH / 'data',
-                   n_process=1,):  # not ideal path naming here
-    if nlp == None:
-        # Load standard spacy model, output tokens (not text strings) 
-        nlp = load_spacy_model(output_type='doc', entity_ruler=False, tokenizer_only=True, verbose=False)
+                   data_path: Path = reports_path, save_path: Path = BASE_PATH / 'data'):  # not ideal path naming here):
+
+    nlp = nlp or load_spacy_model(output_type='doc', entity_ruler=False, tokenizer_only=True, verbose=False)
 
     # load trigger phrases from file
     triggers = load_triggers(triggers_path, triggers_from_labelling=triggers_from_labelling)

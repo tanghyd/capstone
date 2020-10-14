@@ -52,3 +52,11 @@ class Timer:
     def __exit__(self, *exc_info):
         """Stop the context manager timer"""
         self.stop()
+        
+        
+def to_list(x, sep=',', default='unknown'):
+    if isinstance(x, str):
+        return [item.strip() for item in x.split(sep)]
+    else:
+        return [default]
+

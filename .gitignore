@@ -255,4 +255,7 @@ data/dataframes/subset_data.csv
 data/backup
 exploration/daniel/.data/
 
+pipeline/exploration/zimin/BERT
+pipeline/exploration/zimin/BERT-20201013T150124Z-001.zip
+
 .DS_Store/
