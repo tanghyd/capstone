@@ -2,11 +2,6 @@ print('processing.py')
 
 from pathlib import Path
 
-# nltk.download('vader_lexicon')
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-## Sentiement Analyser Imports
-from textblob import TextBlob
-
 up_n_levels = '.'
 BASE_PATH = Path(up_n_levels)
 events_path = BASE_PATH / 'events'
@@ -15,7 +10,7 @@ subset_reports_path = BASE_PATH / 'data' / 'subset'
 reports_path = BASE_PATH / 'data' / 'wamex_xml'  # should be set to wamex_xml when ready
 entities_path = dictionary_path / 'patterns'
 triggers_path = dictionary_path / 'trigger_phrases'
-# data_path = BASE_PATH / 'data'
+data_path = BASE_PATH / 'data'
 
 from typing import Dict, Set
 from collections import defaultdict
@@ -95,9 +90,9 @@ def load_json(filename):
 
 
 def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_only=False,
-                    entity_ruler=True, entities_path=entities_path, 
+                    geological_matcher=True, entities_path=entities_path, lemmatize_triggers=True,
                     trigger_matcher=False, triggers_from_labelling=False, triggers_path=triggers_path,
-                    lemmatizer=True, stopword_removal=False, punctuation_removal=True, verbose=True):
+                    lemmatizer=False, stopword_removal=False, punctuation_removal=True, verbose=True):
     '''Utility function to load standardised NLP English pipeline from spaCy
     
     output_type : str --- Specifies the output type for the pipeline. Default: 'doc'.
@@ -108,18 +103,18 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
 
     # output type check
     assert output_type in ('doc', 'sentence', 'text'), "output_type not valid. Select one of ('doc', 'token', 'sentence', 'text')."
-
+    from spacy.pipeline import EntityRuler
     # initialise language pipeline with base model
     nlp = spacy.load(base_model)
 
-    if lemmatizer:
-        def lemmatizer(doc):
-            # This takes in a doc of tokens from the NER and lemmatizes them. 
-            doc = [token.lemma_.lower().strip() for token in doc if token.lemma_ != '-PRON-']
-            doc = u' '.join(doc)
-            return nlp.make_doc(doc)
+    def lemmatize(doc):
+        # This takes in a doc of tokens from the NER and lemmatizes them. 
+        doc = [token.lemma_.lower().strip() for token in doc if token.lemma_ != '-PRON-']
+        doc = u' '.join(doc)
+        return nlp.make_doc(doc)
 
-        nlp.add_pipe(lemmatizer, name='lemmatizer', before='tagger')
+    if lemmatizer:
+        nlp.add_pipe(lemmatize, name='lemmatizer', before='ner')
         if verbose:
             print('Added lemmatizer pipe')
 
@@ -130,7 +125,7 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
             doc = u' '.join(doc)
             return nlp.make_doc(doc)
 
-        nlp.add_pipe(remove_stopwords, name='stopwords', before='tagger')
+        nlp.add_pipe(remove_stopwords, name='stopwords', before='ner')
         if verbose:
             print('Added stopword removal pipe')
 
@@ -145,36 +140,32 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
         if verbose:
             print('Added punctuation removal pipe')
 
-    if entity_ruler and not tokenizer_only:
+    if geological_matcher and not tokenizer_only:
         # Instantiate a spaCy EntityRuler and load patterns for manual pattern matching
-        from spacy.pipeline import EntityRuler
-
-        # import patterns from file
         patterns = load_patterns(entities_path)
+        geo_ruler = EntityRuler(nlp, overwrite_ents=True, validate=True)
+        geo_ruler.add_patterns(patterns)
 
-        # instantiate pattern matcher and add to pipeline
-        ruler = EntityRuler(nlp, overwrite_ents=True)
-        ruler.add_patterns(patterns)
-
-        nlp.add_pipe(ruler, name='entityruler', after='ner')
+        nlp.add_pipe(geo_ruler, name='georuler', after='ner')
         if verbose:
-            print('Added entity ruler pipe')
+            print('Added geological entity matcher pipe')
+
+    # if tenement_matcher and not tokenizer_only:
+    #     # specify pattern schema for a "tenement" and create entity ruler for it
+    #     tenement_patterns = {}
+    #     tenement_ruler = EntityRuler(nlp, overwrite_ents=True)
+    #     tenement_ruler.add_patterns(tenement_patterns)
+
+    #     nlp.add_pipe(tenement_ruler, name='tenementruler', after='ner')
+    #     if verbose:
+    #         print('Added tenement matcher pipe')
 
     if trigger_matcher and not tokenizer_only:
-        # Create phrase matcher
-        from spacy.matcher import PhraseMatcher
-        # create phrase matcher that matches on our trigger words 
-        triggers = load_triggers(triggers_path, triggers_from_labelling=triggers_from_labelling)
-
-        trigger_ruler = EntityRuler(nlp, overwrite_ents=True)
-
-        trigger_ruler.add_patterns(
-            ({'label': 'TRIGGER', 'pattern': trigger} for trigger in triggers)
-        )
-
+        trigger_ruler = create_trigger_ruler(triggers_path=triggers_path, triggers_from_labelling=triggers_from_labelling, nlp=nlp)
         nlp.add_pipe(trigger_ruler, name='triggermatcher', after='ner')
+
         if verbose:
-            print('Added trigger matcher pipe')
+            print('Added trigger phrase matcher pipe')
 
     if tokenizer_only:
         pipes = ['tagger', 'parser', 'ner']
@@ -211,6 +202,40 @@ def load_spacy_model(base_model="en_core_web_lg", output_type='doc', tokenizer_o
 
     return nlp
 
+def create_trigger_ruler(triggers_path=triggers_path, triggers_from_labelling=False, nlp=None, lemmatize_triggers=True):
+    # note: if we load a default nlp class with lemmatize_triggers, we may end up with recursion
+    nlp = nlp or load_spacy_model(output_type='doc', trigger_matcher=True, lemmatizer=False,
+                       stopword_removal=False, punctuation_removal=True, lemmatize_triggers=False)  
+
+    from spacy.pipeline import EntityRuler
+    # load triggers and create phrase matcher that matches on our trigger words 
+    triggers = load_triggers(triggers_path, triggers_from_labelling=triggers_from_labelling)
+    trigger_ruler = EntityRuler(nlp, overwrite_ents=True, validate=True)
+    
+    # load triggers to match directly on text
+    trigger_patterns = [{
+        'label': 'TRIGGER',
+        'pattern': [{'LOWER': word} for word in trigger]} 
+        for trigger in triggers
+    ]
+
+    trigger_ruler.add_patterns(trigger_patterns)
+
+    if lemmatize_triggers:
+        # lemmatize triggers with loaded pipeline.
+        lemmatized_triggers = [
+            [token.lemma_.lower().strip() for token in doc if token.lemma_ != '-PRON-']
+            for doc in nlp.pipe(triggers)
+        ]
+        # load lemmatized triggers into a rule based matcher, matching Token Lemmas
+        lemma_patterns = [{
+            "label": "TRIGGER",
+            "pattern": [{"LEMMA": word} for word in trigger]
+        } for trigger in lemmatized_triggers]
+
+        trigger_ruler.add_patterns(lemma_patterns)
+
+    return trigger_ruler
 # function to take doc object to text
 def to_text(doc, lower_case=False):
     if lower_case:  # Use token.text to return strings, which we'll need for Gensim.
@@ -235,14 +260,17 @@ def create_phrase_matcher(phrases, nlp=None, label="TRIGGER"):
 
     return matcher
 
-
 def get_matches(doc, matcher) -> Set:
     '''Gets tokens as text given a spaCy doc and a spaCy PhraseMatcher'''
     return {doc[start:end].text for _, start, end in matcher(doc)}  # set comprehension
 
-
 ### Function that produces sentiment scores for text chunck
 def get_sentiment_scores(text):
+    # nltk.download('vader_lexicon')
+    from nltk.sentiment.vader import SentimentIntensityAnalyzer
+    ## Sentiement Analyser Imports
+    from textblob import TextBlob
+
     ##Intialise sentiment analyser from ntlk
     sentiment_analyser = SentimentIntensityAnalyzer()
     score = sentiment_analyser.polarity_scores(text)
@@ -287,7 +315,7 @@ def match_triggers(filenames, triggers_from_labelling=True, nlp=None, save_json=
                    json_file='sample_triggers.json', return_json=False, triggers_path=triggers_path,
                    data_path: Path = reports_path, save_path: Path = BASE_PATH / 'data'):  # not ideal path naming here):
 
-    nlp = nlp or load_spacy_model(output_type='doc', entity_ruler=False, tokenizer_only=True, verbose=False)
+    nlp = nlp or load_spacy_model(output_type='doc', geological_matcher=False, tokenizer_only=True, verbose=False)
 
     # load trigger phrases from file
     triggers = load_triggers(triggers_path, triggers_from_labelling=triggers_from_labelling)

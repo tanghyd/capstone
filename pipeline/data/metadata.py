@@ -23,9 +23,9 @@ def get_geoview_data(data_file='Exploration_Reports_GDA2020_shp.zip',
 
     if zip:
         # read geoview metadata from zip
-        file_path = os.path.join('zip://', *(str(data_folder).split('/')), 'geoview', data_file)
+        file_path = os.path.join('zip://',data_folder, 'geoview', data_file)
     else:
-        file_path = os.path.join(*(str(data_folder).split('/')), 'geoview', data_file)
+        file_path = os.path.join(data_folder, 'geoview', data_file)
 
     headers = default_headers if headers is None else headers
 
@@ -70,13 +70,13 @@ def get_geoview_data(data_file='Exploration_Reports_GDA2020_shp.zip',
 # create dataframe for filename and a-number data
 def get_report_data(data_folder='data', count_sentences=False, return_files=False):
     # get filenames in wamex data folder directory and save to filenames - does not load .json files
-    wamex_folder_path = wamex_folder_path = os.path.join(*(str(data_folder).split('/')), 'wamex_xml')
+    wamex_folder_path = os.path.join(data_folder, 'wamex_xml')
     filenames = [file.split('/', 4)[-1] for file in os.listdir(wamex_folder_path) if file.split('.', 1)[-1] == 'json']
     anumbers = [int(file.split("_", 1)[0].replace("a", "")) for file in filenames] # get anumbers from file string
-
+    #tenements
     data = {'filename': filenames, 'anumber': anumbers}
    
-    if return_files:  
+    if return_files or count_sentences:  
         # then we need to load files
         files = load_files(filenames, data_path=wamex_folder_path)
 
@@ -85,7 +85,10 @@ def get_report_data(data_folder='data', count_sentences=False, return_files=Fals
             sentence_count = [len(sentences) for sentences in files.values()]
             data = {**data, 'sentence_count': sentence_count}
 
-        return pd.DataFrame.from_dict(data), files
+        if return_files:
+            return pd.DataFrame.from_dict(data), files
+        else:
+            return pd.DataFrame.from_dict(data)
 
     return pd.DataFrame.from_dict(data)
 
