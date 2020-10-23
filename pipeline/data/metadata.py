@@ -5,7 +5,7 @@ from datetime import datetime
 import geopandas as gpd
 import pandas as pd
 
-from pipeline.preprocessing import load_files
+from pipeline.preprocessing.text import load_files
 
 default_headers = ['ANUMBER', 'TITLE', 'REPORT_YEA', 'AUTHOR_NAM', 'AUTHOR_COM', 'REPORT_TYP',
                    'DATE_FROM', 'DATE_TO', 'PROJECT', 'OPERATOR', 'ABSTRACT', 'KEYWORDS',

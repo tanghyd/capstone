@@ -1,6 +1,6 @@
 # capstone repo pipeline for labelled training data --> built event text chunks
-from pipeline.preprocessing.processing import match_triggers, triggers_json_to_df, load_triggers
-from pipeline.preprocessing.processing import load_files, load_json, load_spacy_model
+from pipeline.preprocessing.text import match_triggers, triggers_json_to_df, load_triggers
+from pipeline.preprocessing.text import load_files, load_json, load_spacy_model
 from pipeline.utils.helpers import to_list
 from pipeline.data.metadata import get_report_data, get_geoview_data
 

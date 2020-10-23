@@ -1,6 +1,6 @@
 import pandas as pd
 
-from pipeline.preprocessing.processing import load_spacy_model, match_triggers
+from pipeline.preprocessing.text import load_spacy_model, match_triggers
 from pipeline.data.metadata import get_geoview_data, get_report_data
 
 default_event_cols = ['event_id', 'filename', 'event_text', 'label']
