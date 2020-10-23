@@ -54,26 +54,29 @@ def merge_datasets(datasets: dict, confidence, users = None):
     assert confidence.lower() in ('low','medium','high'), 'confidence parameter must be in ("low","medium","high")'
     
     users = users or ('daniel','charlie')  # specify data labellers
-    
     # subset all datasets on reviewed, assign user column to user name, then concatenate and return
-    df = pd.concat([dataset[user].loc[dataset[user].reviewed].assign(user=user) for user in users])
-    
+    df = pd.concat([datasets[user].loc[datasets[user].reviewed].assign(user=user) for user in users])
+
     if confidence.lower() == 'high':
         df.loc[df.confidence != 'High', 'label'] = False
     elif confidence.lower() == 'medium':
         df.loc[df.confidence == 'Low', 'label'] = False
-    
-    # split into duplicates and non-duplicates
-    duplicates = df.loc[df.index.duplicated(keep=False)]
-    df = df.loc[~df.index.duplicated(keep=False)]
+        
+    agg_cols = {'label': 'all', 'lower_bound': 'min', 'upper_bound': 'max'}
+    remove_cols = ['confidence','user','reviewed']
 
-    # merge cleaned duplicates and data, then concatenate
-    merged = duplicates[['filename','anumber','sentence_count','report_type','sentence_idx','triggers']].merge(
-        duplicates.groupby('index').agg({'label': 'all', 'lower_bound': 'min', 'upper_bound': 'max'}),
-        left_index=True, right_index=True).drop_duplicates()
-    
-    return pd.concat([df, merged]).drop(columns=['confidence','user', 'reviewed']).sort_index()
+    # get unique data from df
+    df_unique = df.drop(columns=remove_cols)
+    df_unique = df_unique.loc[~df_unique[['filename','sentence_idx']].duplicated(keep=False)]
 
+    # merge the cleaned duplicates with the extra column metadata
+    df_merged = df.drop(columns=remove_cols + list(agg_cols.keys())).merge(
+        df.loc[df[['filename','sentence_idx']].duplicated(keep=False)].groupby(
+        ['filename','sentence_idx']).agg(agg_cols).reset_index(),
+        on=['filename','sentence_idx'], how='right').drop_duplicates()
+
+    return pd.concat([df_unique, df_merged])
+    
 def load_group_all_labelled(geoview = None, capstone_files=None, files=None, pad=2):
     import yaml
     if type(geoview) != pd.DataFrame:
@@ -84,8 +87,10 @@ def load_group_all_labelled(geoview = None, capstone_files=None, files=None, pad
         from pipeline.data.metadata import get_report_data
         capstone_files, files = get_report_data(count_sentences=True, return_files=True)
         
-    old_events = pd.read_csv('events/group_all_labelled.csv')
-
+    # load data and drop any duplicated events
+    old_events = pd.read_csv('events/labels/group_all_labelled.csv')
+    old_events = old_events.loc[~old_events[['filename','sentence_idx']].duplicated(keep=False)]
+    
     # fix string and lists
     for group in (2,3,4,6):
         old_events.loc[old_events.group == group, 'trigger_words_in_sentence'] = old_events.loc[
@@ -183,15 +188,21 @@ if __name__ == '__main__':
                         default='high', help='Confidence required to label as near miss')
     parser.add_argument('-u', '--users', type=str, metavar='N', nargs='+',
                         default=['daniel','charlie'],help='Specify labelling user to source data from')
+    parser.add_argument('--all_events', dest='events', action='store_true')
+    parser.add_argument('--new_events', dest='events', action='store_false')
+    parser.set_defaults(events=False)
     
     args = parser.parse_args()
     
     # specify confidence and user labelling settings 
     confs = (args.confidence,) if type(args.confidence) == str else args.confidence
     users = args.users
+    group_all_labelled = args.events
     
     print(f'Building training data from labelled near miss instances by: {" ".join(user for user in users)}')
     print(f'Confidence thresholds to label text chunks as near miss: {" ".join(conf for conf in confs)}')
+    if group_all_labelled:
+        print('Including old labelled training data.')
     
     # load spacy model
     nlp = load_spacy_model(output_type='doc', trigger_matcher=True, lemmatizer=False, geological_matcher=True,
@@ -209,7 +220,7 @@ if __name__ == '__main__':
     # users = users or ('daniel','charlie')
     # confs = ('medium','high',)
     dataset = {
-        user : pd.read_csv(f'data/events/{user}_dataset.csv', index_col=0).rename(
+        user : pd.read_csv(f'data/labels/{user}_dataset.csv', index_col=0).rename(
             columns={'idx': 'sentence_idx'}) for user in users}
 
     for user in users:
@@ -217,7 +228,7 @@ if __name__ == '__main__':
         
       # loads events by confidence - note will not load group labelled
     events = {conf: build_event_data(dataset, confidence=conf, files=files, nlp=nlp, capstone_files=capstone_files,
-        geoview=geoview, return_entities=True, group_all_labelled=True) for conf in confs}
+        geoview=geoview, return_entities=True, group_all_labelled=group_all_labelled) for conf in confs}
 
     # build geopandas.geodataframe.GeoDataFrame (to start with geoview to preserve data type for plotly map)
     # join geoview shape files, geoview metadata, capstone json to anumber mapping, and aggregated event statistics
@@ -234,6 +245,11 @@ if __name__ == '__main__':
         commodities[conf] = pd.DataFrame(mlb.transform(df[conf]['commodity_list']), columns=mlb.classes_, index=df[conf].index)
 
     for conf in confs:
-        events[conf].to_csv(f'data/events/events_{conf}-conf.csv')
-        commodities[conf].to_csv(f'data/events/commodities_{conf}-conf.csv')
+        if group_all_labelled:
+            events[conf].to_csv(f'data/events/events_{conf}-conf-extra.csv')
+            commodities[conf].to_csv(f'data/events/commodities_{conf}-conf-extra.csv')
+        else:
+            events[conf].to_csv(f'data/events/events_{conf}-conf.csv')
+            commodities[conf].to_csv(f'data/events/commodities_{conf}-conf.csv')
+            
     print('Saved events and commodities for each confidence threshold to data/events/')

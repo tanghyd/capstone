@@ -1,5 +1,3 @@
-print('processing.py')
-
 from pathlib import Path
 
 up_n_levels = '.'

@@ -3,14 +3,15 @@ import pandas as pd
 from pipeline.preprocessing.processing import load_spacy_model, match_triggers
 from pipeline.data.metadata import get_geoview_data, get_report_data
 
-default_event_cols = ['event_id', 'filename', 'group', 'sentence_text', 'event_text', 'Near Miss Event', 'reviewed']
+default_event_cols = ['event_id', 'filename', 'event_text', 'label']
 
-def load_event_data(nlp=None, cols=None, path='events/group_all_labelled.csv'):
-    nlp = nlp or load_spacy_model(output_type='text', tokenizer_only=True)
+def load_event_data(nlp=None, cols=None, confidence='high'):
+    nlp = nlp or load_spacy_model(output_type='text', lemmatizer=True, geological_matcher=False,
+    stopword_removal=False, punctuation_removal=True, verbose=False)
+
     cols = default_event_cols if cols is None else cols
+    df = pd.read_csv(f'data/events/events_{confidence}-conf.csv', index_col=0, usecols=cols)
 
-    df = pd.read_csv(path, usecols=cols)
-    df['labels'] = df['Near Miss Event'].astype(int)
     df['tokens'] = list(nlp.pipe(df.event_text.values))
 
     return df

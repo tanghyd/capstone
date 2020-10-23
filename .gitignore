@@ -258,8 +258,12 @@ exploration/daniel/.data/
 pipeline/exploration/zimin/BERT
 pipeline/exploration/zimin/BERT-20201013T150124Z-001.zip
 
-dash_testing.ipynb
-pipeline_testing.ipynb
+
 sentence_labeller.ipynb
+data_testing.ipynb
+build_event_data.ipynb
+pipeline_testing.ipynb
+# classification_testing.ipynb
+dash_testing.ipynb
 
 .DS_Store/

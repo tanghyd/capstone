@@ -1,4 +1,3 @@
-print('helpers.py')
 # timer.py
 from dataclasses import dataclass, field
 import time

@@ -1,6 +1,4 @@
-### WAMEX XML ETL FOR REPORT METADATA ###
-print('metadata.py')
-
+### WAMEX XML ETL FOR REPORT METADATA ##
 import os
 from datetime import datetime
 

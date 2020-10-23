@@ -15,7 +15,7 @@ class EventVectoriser(TransformerMixin, BaseEstimator):
                  tag_col='event_id',
                  token_col='tokens',
                  max_epochs=100,
-                 min_count=2,
+                 min_count=1,
                  vec_size=50,
                  alpha=0.025,
                  min_alpha=0.00025,

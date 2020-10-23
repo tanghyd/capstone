@@ -1,5 +1,4 @@
 ### CLASSIFICATION ###
-print('classifier.py')
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.validation import check_array, check_is_fitted
 import numpy as np
