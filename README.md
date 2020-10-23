@@ -4,28 +4,20 @@
 ### Project proposal: 
 https://docs.google.com/document/d/18tzEOiPqDGRY44DTDCC5J_Ck4rpK9Eya3hu5x5tLzg0/edit
 
-### Pipeline
+#### Pipeline
 
 Sentences matched on triggers have been grouped and stored in: `data/labels/extract_triggers_grouped.csv'
 
 #### Label Events
 
+```
+sentence_labeller.ipynb
+```
+
+
 Here we take the above `extract_triggers_grouped.csv` file and load it into the `sentence_labeller` notebook to label our sentences for each group member. Labellers can custom specify the range of the particular text chunk to include necessary context.
 
-```
-pipeline/sentence_labeller.ipynb
-```
-
 ####  Build Event Data for Vectorisation
-
-This takes labelled sentences (and their lower and upper bounds - i.e. may be a 3 sentence text chunk) as well as stored metadata to produce labelled events for vectorisation and classification.
-
-Events can be extracted either sentence-by-sentence, or with a sliding window of specified (i.e. a `pad` is set). Old text chunks are extracted with `pad=2` to be equivalent to `n_sentences_extract=2`.
-
-
-This code is dependent on the following files:
-- `data/geoview/capstone_metadata.zip`
-- all reports stored in `data/wamex_xml/`
 
 
 ```
@@ -38,8 +30,18 @@ parameters:
 --new_events (include only new events) OR
 --all_events (also include old events - note these are labelled FALSE in confidence == High)
 
+This takes labelled sentences (and their lower and upper bounds - i.e. may be a 3 sentence text chunk) as well as stored metadata to produce labelled events for vectorisation and classification.
+
+Events can be extracted either sentence-by-sentence, or with a sliding window of specified (i.e. a `pad` is set). Old text chunks are extracted with `pad=2` to be equivalent to `n_sentences_extract=2`.
+
+This code is dependent on the following files:
+- `data/geoview/capstone_metadata.zip`
+- all reports stored in `data/wamex_xml/`
+
 
 #### 5. Vectorisation and Classification on Labelled Events
+
+Notebooks used to show example pipeline given a labelled set of data.
 
 ```
 pipeline/example.ipynb
