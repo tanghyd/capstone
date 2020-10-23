@@ -88,7 +88,7 @@ def load_group_all_labelled(geoview = None, capstone_files=None, files=None, pad
         capstone_files, files = get_report_data(count_sentences=True, return_files=True)
         
     # load data and drop any duplicated events
-    old_events = pd.read_csv('events/labels/group_all_labelled.csv')
+    old_events = pd.read_csv('data/labels/group_all_labelled.csv')
     old_events = old_events.loc[~old_events[['filename','sentence_idx']].duplicated(keep=False)]
     
     # fix string and lists
@@ -214,25 +214,28 @@ if __name__ == '__main__':
     metadata = pd.read_csv('data/geoview/capstone_metadata.zip', compression='zip', parse_dates=['report_year'],
         usecols=['anumber','title','report_type','project','keywords','commodity','report_year'])
 
-    geoview = gpd.read_file('zip://data/geoview/capstone_shapefiles.shp.zip')
+    # geoview = gpd.read_file('zip://data/geoview/capstone_shapefiles.shp.zip')
 
     # specify labellers
     # users = users or ('daniel','charlie')
     # confs = ('medium','high',)
+    
+    # read data from file
     dataset = {
         user : pd.read_csv(f'data/labels/{user}_dataset.csv', index_col=0).rename(
             columns={'idx': 'sentence_idx'}) for user in users}
 
+    # print confirmation of data load for each user
     for user in users:
         print(f'{len(dataset[user].loc[dataset[user].reviewed])} events labelled by {user}.')
         
-      # loads events by confidence - note will not load group labelled
+    # loads events by confidence - note will not load group labelled
     events = {conf: build_event_data(dataset, confidence=conf, files=files, nlp=nlp, capstone_files=capstone_files,
-        geoview=geoview, return_entities=True, group_all_labelled=group_all_labelled) for conf in confs}
+        geoview=metadata, return_entities=True, group_all_labelled=group_all_labelled) for conf in confs}
 
     # build geopandas.geodataframe.GeoDataFrame (to start with geoview to preserve data type for plotly map)
     # join geoview shape files, geoview metadata, capstone json to anumber mapping, and aggregated event statistics
-    df = {conf : geoview.merge(metadata, on='anumber').merge(capstone_files, on='anumber').merge(
+    df = {conf : metadata.merge(capstone_files, on='anumber').merge(
         events[conf].groupby('filename')['label'].sum().reset_index(), on='filename') for conf in confs}
 
     # store one hot encodings for each of the events dataframes
