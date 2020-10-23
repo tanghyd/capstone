@@ -258,6 +258,8 @@ exploration/daniel/.data/
 pipeline/exploration/zimin/BERT
 pipeline/exploration/zimin/BERT-20201013T150124Z-001.zip
 
+data/labels/charlie_dataset_backup.csv
+data/labels/daniel_dataset_backup.csv
 
 sentence_labeller.ipynb
 data_testing.ipynb
