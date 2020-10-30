@@ -14,7 +14,7 @@ import spacy
 
 from tqdm import tqdm
 
-def extract_text_chunks(filenames, pad=2, skip_on_trigger=False):
+def extract_text_chunks(filenames, pad=2, skip_on_trigger=False, tokenize=False, nlp=None, n_process=-1, batch_size=100):
     # if a dictionary is loaded where keys are filenames and values are pre-loaded files, we dont load from disk
     if type(filenames) == dict:
         files = filenames
@@ -23,7 +23,18 @@ def extract_text_chunks(filenames, pad=2, skip_on_trigger=False):
         files = load_files(filenames, data_path='data/wamex_xml', output='dict')
     
     if skip_on_trigger:
+        # have not implemented skipping over overlapping text chunks
         pass
+    
+    if tokenize:
+        nlp = nlp or load_spacy_model(output_type='text', lemmatizer=True, geological_matcher=False, 
+            stopword_removal=False, punctuation_removal=True, lemmatize_triggers=True, verbose=False)
+        
+        files = {
+            file : list(nlp.pipe(sentences, n_process=n_process, batch_size=batch_size)) 
+            for file, sentences in tqdm(files.items(), desc='Tokenizing file text')
+         }
+        
     
     return {
         file : [' '.join((pad*[''] + sentences + pad*[''])[idx : (1 + idx + (2*pad))]).strip()

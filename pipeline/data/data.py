@@ -34,3 +34,28 @@ def load_metadata_with_triggers(nlp=None, num_files=None, data_folder='data'):
     data = file_triggers.merge(metadata, on='filename')
 
     return data
+
+def group_event_score(events, by_anumber=True, index=False):
+    '''Takes the events dataframe as input with filename and anumber in columns.
+    Groups by filename or a_number to produce a report score given each identified event computed by
+    product sum of (1 - P'(X)), a score analogous to the likelihood of at least one event assuming indepence
+    '''
+    # whether to group by filename or anumber
+    if by_anumber:  # Calculate 1 - P'(X) for each anumber
+        df = events.groupby('anumber').prob.apply(
+            lambda x : x.subtract(1).multiply(-1).prod()
+        ).fillna(1).multiply(-1).add(1)
+                            
+    # group by filename - Calculate 1 - P'(X) for each filename
+    else:
+        df = events.groupby(['anumber','filename']).prob.apply(
+            lambda x : x.subtract(1).multiply(-1).prod()
+        ).fillna(1).multiply(-1).add(1)
+    
+    # rename prob of each event to score for report
+    df.name = 'score'
+        
+    # reset index after groupby
+    if index:
+        return df
+    return df.reset_index()
