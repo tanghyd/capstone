@@ -83,8 +83,8 @@ These final data files are output to `data/predictions`.
 Notebooks used to show example pipeline given a labelled set of data.
 
 ```
-pipeline/example.ipynb
-pipeline/classification_testing.ipynb
+example.ipynb
+classification_testing.ipynb
 ```
 
 Notebook to pre-render spaCy HTML for named entity recognition - HTML data is transferred manually to the capstone-dashboard repository.
