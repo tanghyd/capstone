@@ -65,13 +65,19 @@ Note: This code has been multi-threaded but it is not batch-processed for memory
 
 In `classification_pipeline.ipynb` we load the tokenised text chunks and extract them into a list of strings (`events.tokens`) and a concatenate string with a whitespace separator (`events.tokenized_text`). Depending on the vectorisation method (i.e. our trained `Doc2Vec` model, `sklearn` TF-IDF+Truncated SVD methods, or `LIME` explainers all need different text input representations).
 
-We load our pretrained doc2vec model (fit to the entire collection of extracted text chunks) and fit a number of classifiers to the labelled data set (transformed by the pretrained doc2vec model).
+We load our pretrained doc2vec model (fit to the entire collection of extracted text chunks) and fit a number of classifiers to the labelled data set (transformed by the pretrained doc2vec model). This model and its corresponding word vectors are stored in `capstone/models`.
 
 We analyse the distributions of probabilities predicted by the two estimators in our soft voting classifier (XGBoost and SVM).
 
 Addiitionally, we explore some of the results with LIME.
 
 Finally, the model is used to predict probabilities of being a near miss for every single text chunk with some brief visual analysis of the different implications of our report aggregated scoring function (i.e. how do we aggregate the probability of an event being a near miss at the report level).
+
+#### Data Cleaning
+
+Some post-processing steps were implemented in `clean_event_dataframe.ipynb` like sorting rows and columns.
+
+These final data files are output to `data/predictions`.
 
 ### Miscellaneous
 Notebooks used to show example pipeline given a labelled set of data.
@@ -83,12 +89,21 @@ pipeline/classification_testing.ipynb
 
 Notebook to pre-render spaCy HTML for named entity recognition - HTML data is transferred manually to the capstone-dashboard repository.
 
+```
+generate_html.iypnb
+```
+
 ### Other Folders
 ```
 /data/wamex_xml
 ```
-
 contains full list of reports
+
+```
+/data/lemmatization/
+```
+
+shows some visual examples of the output of different lemmatization methods.
 
 ```
 /dictionary/patterns
@@ -107,7 +122,6 @@ contains trigger words
 ```
 
 contains events separately labelled for `sentence_labeller.ipynb`
-
 
 ```
 /events/
