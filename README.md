@@ -8,7 +8,7 @@ Note: All final code was run on Ubuntu 18.04.
 
 #### Pipeline
 
-Sentences matched on triggers have been grouped and stored in: `data/labels/extract_triggers_grouped.csv'
+Sentences matched on triggers have been grouped and stored in: `data/labels/extract_triggers_grouped.csv`
 
 #### Label Events
 
